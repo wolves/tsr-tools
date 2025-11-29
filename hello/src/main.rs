@@ -1,3 +1,5 @@
+use hello::print;
+
 fn main() {
-    println!("Hello, world!");
+    print();
 }
