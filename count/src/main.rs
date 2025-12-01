@@ -1,7 +1,14 @@
-use std::io::{BufRead, stdin};
+use std::{io::stdin, process};
+
+use count::count_lines;
 
 fn main() {
-    let input = stdin().lock();
-    let lines = input.lines().count();
-    println!("{lines} lines");
+    let res = count_lines(stdin().lock());
+    match res {
+        Ok(lines) => println!("{lines} lines"),
+        Err(e) => {
+            eprintln!("{e}");
+            process::exit(1);
+        }
+    }
 }
