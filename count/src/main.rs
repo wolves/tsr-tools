@@ -5,11 +5,13 @@ use count::count_lines;
 
 fn main() -> Result<()> {
     for path in env::args().skip(1) {
-        let file = File::open(&path)?;
+        let file =
+            File::open(&path).with_context(|| path.clone())?;
         let file = BufReader::new(file);
-        let lines = count_lines(file).context(path)?;
+        let lines =
+            count_lines(file).with_context(|| path.clone())?;
 
-        println!("{lines} lines");
+        println!("{path}: {lines} lines");
     }
     Ok(())
 }
