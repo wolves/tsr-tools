@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail};
+use anyhow::{Result, bail};
 use std::env;
 
 use count::count_lines_in_path;
@@ -10,10 +10,7 @@ fn main() -> Result<()> {
     }
 
     for path in args {
-        let lines = count_lines_in_path(&path)
-            .with_context(|| path.clone())?;
-
-        println!("{path}: {lines} lines");
+        println!("{path}: {} lines", count_lines_in_path(&path)?);
     }
     Ok(())
 }
