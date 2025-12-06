@@ -14,7 +14,11 @@ pub fn count_lines(input: impl BufRead) -> Result<usize> {
 }
 
 pub fn count_words(input: impl BufRead) -> Result<usize> {
-    Ok(0)
+    let mut count = 0;
+    for line in input.lines() {
+        count += line?.split_whitespace().count();
+    }
+    Ok(count)
 }
 
 pub fn count_lines_in_path(path: &String) -> Result<usize> {
