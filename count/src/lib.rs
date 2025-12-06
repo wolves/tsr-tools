@@ -13,6 +13,10 @@ pub fn count_lines(input: impl BufRead) -> Result<usize> {
     Ok(count)
 }
 
+pub fn count_words(input: impl BufRead) -> Result<usize> {
+    Ok(0)
+}
+
 pub fn count_lines_in_path(path: &String) -> Result<usize> {
     let file = File::open(path).with_context(|| path.clone())?;
     let file = BufReader::new(file);
@@ -30,6 +34,13 @@ mod tests {
         let path = "tests/data/test.txt".to_string();
         let lines = count_lines_in_path(&path).unwrap();
         assert_eq!(lines, 2, "wrong file path line count");
+    }
+
+    #[test]
+    fn count_words_fn_counts_words_in_input() {
+        let input = Cursor::new("one two three four");
+        let words = count_words(input).unwrap();
+        assert_eq!(words, 4, "wrong word count");
     }
 
     #[test]
