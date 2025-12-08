@@ -4,19 +4,22 @@ use std::io::BufReader;
 
 use anyhow::{Context, Result};
 
-pub fn count_lines(input: impl BufRead) -> Result<usize> {
+pub fn count_lines(mut input: impl BufRead) -> Result<usize> {
     let mut count = 0;
-    for line in input.lines() {
-        line?;
+    let mut line = String::new();
+    while input.read_line(&mut line)? > 0 {
         count += 1;
+        line.clear();
     }
     Ok(count)
 }
 
-pub fn count_words(input: impl BufRead) -> Result<usize> {
+pub fn count_words(mut input: impl BufRead) -> Result<usize> {
     let mut count = 0;
-    for line in input.lines() {
-        count += line?.split_whitespace().count();
+    let mut line = String::new();
+    while input.read_line(&mut line)? > 0 {
+        count += line.split_whitespace().count();
+        line.clear();
     }
     Ok(count)
 }
