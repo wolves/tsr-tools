@@ -4,30 +4,29 @@ use std::io::BufReader;
 
 use anyhow::{Context, Result};
 
-pub fn count_lines(mut input: impl BufRead) -> Result<usize> {
-    let mut count = 0;
+#[derive(Default)]
+pub struct Count {
+    pub lines: usize,
+    pub words: usize,
+}
+
+pub fn count(mut input: impl BufRead) -> Result<Count> {
+    let mut count = Count::default();
     let mut line = String::new();
+
     while input.read_line(&mut line)? > 0 {
-        count += 1;
+        count.lines += 1;
+        count.words += line.split_whitespace().count();
         line.clear();
     }
+
     Ok(count)
 }
 
-pub fn count_words(mut input: impl BufRead) -> Result<usize> {
-    let mut count = 0;
-    let mut line = String::new();
-    while input.read_line(&mut line)? > 0 {
-        count += line.split_whitespace().count();
-        line.clear();
-    }
-    Ok(count)
-}
-
-pub fn count_lines_in_path(path: &String) -> Result<usize> {
+pub fn count_in_path(path: &String) -> Result<Count> {
     let file = File::open(path).with_context(|| path.clone())?;
     let file = BufReader::new(file);
-    count_lines(file).with_context(|| path.clone())
+    count(file).with_context(|| path.clone())
 }
 
 #[cfg(test)]
@@ -36,25 +35,12 @@ mod tests {
     use std::io::{self, Cursor, Error, Read};
 
     #[test]
-    fn count_lines_in_path_fn_counts_lines_in_file_at_the_given_path()
-     {
-        let path = "tests/data/test.txt".to_string();
-        let lines = count_lines_in_path(&path).unwrap();
-        assert_eq!(lines, 2, "wrong file path line count");
-    }
+    fn count_counts_lines_and_words_in_input() {
+        let input = Cursor::new("word1 word2\nword3");
+        let count = count(input).unwrap();
 
-    #[test]
-    fn count_words_fn_counts_words_in_input() {
-        let input = Cursor::new("one two three four");
-        let words = count_words(input).unwrap();
-        assert_eq!(words, 4, "wrong word count");
-    }
-
-    #[test]
-    fn count_lines_fn_counts_lines_in_input() {
-        let input = Cursor::new("line 1\nline 2\n");
-        let lines = count_lines(input).unwrap();
-        assert_eq!(lines, 2, "wrong line count")
+        assert_eq!(count.lines, 2, "wrong line count");
+        assert_eq!(count.words, 3, "wrong word count");
     }
 
     struct ErrorReader;
@@ -66,9 +52,17 @@ mod tests {
     }
 
     #[test]
-    fn count_lines_fn_returns_any_read_error() {
+    fn count_returns_any_read_error() {
         let reader = BufReader::new(ErrorReader);
-        let result = count_lines(reader);
+        let result = count(reader);
         assert!(result.is_err(), "no error returned");
+    }
+
+    #[test]
+    fn count_in_path_fn_counts_lines_and_words_in_given_file() {
+        let path = String::from("tests/data/test.txt");
+        let count = count_in_path(&path).unwrap();
+        assert_eq!(count.lines, 2, "wrong line count");
+        assert_eq!(count.words, 7, "wrong word count");
     }
 }
