@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+
+[dev-dependencies]
+assert_cmd = "2.1.1"
+predicates = "3.1.3"
