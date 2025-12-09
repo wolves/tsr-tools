@@ -7,7 +7,7 @@ fn main() -> Result<()> {
     let mut word_mode = false;
     let args: Vec<_> = env::args().skip(1).collect();
     if args.is_empty() {
-        bail!("Usage: count <FILE>...");
+        bail!("Usage: count [-w] <FILE>...");
     }
 
     for arg in args {
