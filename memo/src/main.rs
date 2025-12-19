@@ -2,7 +2,7 @@ use std::env;
 
 use anyhow::Result;
 
-use memo::{open, sync};
+use memo::open;
 
 fn main() -> Result<()> {
     let mut memos = open("memos.txt")?;
@@ -15,7 +15,7 @@ fn main() -> Result<()> {
     } else {
         let memo = args.join(" ");
         memos.push(memo);
-        sync(&memos, "memos.txt")?;
+        // sync(&memos, "memos.txt")?;
     }
 
     Ok(())
