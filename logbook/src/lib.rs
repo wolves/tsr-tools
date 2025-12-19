@@ -1,11 +1,19 @@
+//! Records observations in a logbook file, or lists previous
+//! observations.
+use anyhow::Result;
 use std::{
     fs::{self, File},
     io::Write,
     path::Path,
 };
 
-use anyhow::Result;
-
+/// Reads the contents of the logbook file at `path`.
+///
+///
+/// # Errors
+///
+/// Returns [`None`] if the file does not exist or is empty.
+/// Returns any error from [`fs::exists`] or [`fs::read_to_string`].
 pub fn read(path: impl AsRef<Path>) -> Result<Option<String>> {
     if fs::exists(&path)? {
         let text = fs::read_to_string(path)?;
@@ -19,6 +27,13 @@ pub fn read(path: impl AsRef<Path>) -> Result<Option<String>> {
     }
 }
 
+/// Appends `msg` to the logbook file at `path`, creating the file
+/// if necessary.
+///
+/// # Errors
+///
+/// Returns any error from [`open`](fs::OpenOptions::open) or
+/// [`writeln!`].
 pub fn append(path: impl AsRef<Path>, msg: &str) -> Result<()> {
     let mut logbook =
         File::options().create(true).append(true).open(path)?;
