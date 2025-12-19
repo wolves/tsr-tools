@@ -58,4 +58,14 @@ mod tests {
         let text = fs::read_to_string(path).unwrap();
         assert_eq!(text, "hello logbook\n", "wrong text");
     }
+
+    #[test]
+    fn append_appends_line_to_existing_file() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("logbook.txt");
+        fs::write(&path, "hello\n").unwrap();
+        append(&path, "logbook").unwrap();
+        let text = fs::read_to_string(path).unwrap();
+        assert_eq!(text, "hello\nlogbook\n", "wrong text");
+    }
 }
