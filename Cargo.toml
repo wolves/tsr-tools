@@ -1,3 +1,3 @@
 [workspace]
-members = ["count","hello", "logbook"]
+members = ["count","hello", "logbook", "memo"]
 resolver = "2"
