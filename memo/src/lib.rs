@@ -21,19 +21,11 @@ impl Memos {
                 memos.inner.push(memo?);
             }
         }
-        //     file.lines().collect()
-        // } else {
-        //     Ok(Vec::new())
-        // }
         Ok(memos)
     }
-}
-
-pub fn sync(
-    memos: &[String],
-    path: impl AsRef<Path>,
-) -> Result<()> {
-    fs::write(path, memos.join("\n"))
+    pub fn sync(&self) -> Result<()> {
+        fs::write(&self.path, self.inner.join("\n"))
+    }
 }
 
 #[cfg(test)]
