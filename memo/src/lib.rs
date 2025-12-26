@@ -4,9 +4,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, PartialEq)]
 pub struct Memos {
     path: PathBuf,
-    pub inner: Vec<String>,
+    pub inner: Vec<Memo>,
 }
 
 impl Memos {
@@ -28,6 +31,18 @@ impl Memos {
     }
 }
 
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub struct Memo {
+    pub text: String,
+    pub status: Status,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug)]
+pub enum Status {
+    Pending,
+    Done,
+}
+
 #[cfg(test)]
 mod tests {
     use tempfile::tempdir;
@@ -37,7 +52,20 @@ mod tests {
     #[test]
     fn open_returns_data_from_given_file() {
         let memos = Memos::open("tests/data/memos.txt").unwrap();
-        assert_eq!(memos.inner, vec!["foo", "bar"], "wrong data");
+        assert_eq!(
+            memos.inner,
+            vec![
+                Memo {
+                    text: "foo".to_string(),
+                    status: Status::Pending,
+                },
+                Memo {
+                    text: "bar".to_string(),
+                    status: Status::Pending,
+                }
+            ],
+            "wrong data"
+        );
     }
 
     #[test]
@@ -52,15 +80,20 @@ mod tests {
         let path = dir.path().join("memos.txt");
         let memos = Memos {
             path: path.clone(),
-            inner: vec!["foo".to_string(), "bar".to_string()],
+            inner: vec![
+                Memo {
+                    text: "foo".to_string(),
+                    status: Status::Pending,
+                },
+                Memo {
+                    text: "bar".to_string(),
+                    status: Status::Pending,
+                },
+            ],
         };
         memos.sync().unwrap();
 
-        let memos = Memos::open(&path).unwrap();
-        assert_eq!(
-            memos.inner,
-            vec!["foo".to_string(), "bar".to_string()],
-            "wrong data"
-        );
+        let memos_2 = Memos::open(&path).unwrap();
+        assert_eq!(memos.inner, memos_2.inner, "wrong data");
     }
 }
