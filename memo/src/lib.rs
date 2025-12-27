@@ -1,6 +1,6 @@
 use std::{
     fs::{self, File},
-    io::{BufRead, BufReader, Result},
+    io::{BufReader, BufWriter, Result},
     path::{Path, PathBuf},
 };
 
@@ -18,16 +18,18 @@ impl Memos {
             path: PathBuf::from(path.as_ref()),
             inner: Vec::new(),
         };
+
         if fs::exists(&path)? {
-            let file = BufReader::new(File::open(&path)?);
-            for memo in file.lines() {
-                memos.inner.push(memo?);
-            }
+            let file = File::open(path)?;
+            memos.inner =
+                serde_json::from_reader(BufReader::new(file))?;
         }
         Ok(memos)
     }
     pub fn sync(&self) -> Result<()> {
-        fs::write(&self.path, self.inner.join("\n"))
+        let file = File::create(&self.path)?;
+        serde_json::to_writer(BufWriter::new(file), &self.inner)?;
+        Ok(())
     }
 }
 
