@@ -14,6 +14,12 @@ pub struct Memos {
 }
 
 impl Memos {
+    pub fn find_all(&mut self, text: &str) -> Vec<&mut Memo> {
+        self.inner
+            .iter_mut()
+            .filter(|m| m.text.contains(text))
+            .collect()
+    }
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let mut memos = Self {
             path: PathBuf::from(path.as_ref()),
@@ -78,34 +84,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn open_returns_data_from_given_file() {
-        let memos = Memos::open("tests/data/memos.txt").unwrap();
-        assert_eq!(
-            memos.inner,
-            vec![
-                Memo {
-                    text: "foo".to_string(),
-                    status: Status::Pending,
-                },
-                Memo {
-                    text: "bar".to_string(),
-                    status: Status::Pending,
-                }
-            ],
-            "wrong data"
-        );
-    }
-
-    #[test]
     fn open_returns_empty_vec_for_missing_file() {
         let memos = Memos::open("bogus.txt").unwrap();
         assert!(memos.inner.is_empty(), "vec not empty");
     }
 
     #[test]
-    fn sync_writes_vec_to_file() {
+    fn round_trip_via_sync_and_open_preserves_data() {
         let dir = tempdir().unwrap();
-        let path = dir.path().join("memos.txt");
+        let path = dir.path().join("memos.json");
         let memos = Memos {
             path: path.clone(),
             inner: vec![
@@ -123,5 +110,31 @@ mod tests {
 
         let memos_2 = Memos::open(&path).unwrap();
         assert_eq!(memos.inner, memos_2.inner, "wrong data");
+    }
+
+    #[test]
+    fn find_all_fn_returns_all_memos_matching_substring() {
+        let mut memos = Memos {
+            path: PathBuf::from("fake"),
+            inner: vec![
+                Memo {
+                    text: "foo".to_string(),
+                    status: Status::Pending,
+                },
+                Memo {
+                    text: "bar".to_string(),
+                    status: Status::Pending,
+                },
+                Memo {
+                    text: "food".to_string(),
+                    status: Status::Pending,
+                },
+            ],
+        };
+
+        let found: Vec<&mut Memo> = memos.find_all("foo");
+        assert_eq!(found.len(), 2, "wrong number of matches");
+        assert_eq!(found[0].text, "foo", "wrong match");
+        assert_eq!(found[1].text, "food", "wrong match");
     }
 }

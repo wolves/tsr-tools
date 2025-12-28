@@ -1,23 +1,41 @@
 use std::env;
 
 use anyhow::Result;
+use clap::Parser;
 
 use memo::{Memo, Memos, Status};
 
-fn main() -> Result<()> {
-    let mut memos = Memos::open("memos.txt")?;
-    let args: Vec<_> = env::args().skip(1).collect();
+#[derive(Parser)]
+/// Stores and manages simple reminders.
+struct Args {
+    /// Marks all matching memos as done
+    #[arg(short, long)]
+    done: bool,
+    /// Text of the memo to store or mark as done
+    text: Vec<String>,
+}
 
-    if args.is_empty() {
+fn main() -> Result<()> {
+    let args = Args::parse();
+    let mut memos = Memos::open("memos.json")?;
+    let text = args.text.join(" ");
+
+    if args.done {
+        for m in memos.find_all(&text) {
+            m.status = Status::Done;
+            println!("Marked \"{}\" as done.", m.text);
+        }
+        memos.sync()?;
+    } else if args.text.is_empty() {
         for memo in &memos.inner {
             println!("{memo}");
         }
     } else {
-        let text = args.join(" ");
         memos.inner.push(Memo {
-            text,
+            text: text.clone(),
             status: Status::Pending,
         });
+        println!("Added \"{}\" as a new memo.", &text);
         memos.sync()?;
     }
 
