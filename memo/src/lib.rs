@@ -14,6 +14,9 @@ pub struct Memos {
 }
 
 impl Memos {
+    pub fn purge_done(&mut self) {
+        self.inner.retain(|m| m.status != Status::Done);
+    }
     pub fn find_all(&mut self, text: &str) -> Vec<&mut Memo> {
         self.inner
             .iter_mut()
@@ -136,5 +139,36 @@ mod tests {
         assert_eq!(found.len(), 2, "wrong number of matches");
         assert_eq!(found[0].text, "foo", "wrong match");
         assert_eq!(found[1].text, "food", "wrong match");
+    }
+
+    #[test]
+    fn purge_done_fn_deletes_all_memos_with_done_status() {
+        let mut memos = Memos {
+            path: PathBuf::from("fake"),
+            inner: vec![
+                Memo {
+                    text: "foo".to_string(),
+                    status: Status::Done,
+                },
+                Memo {
+                    text: "bar".to_string(),
+                    status: Status::Done,
+                },
+                Memo {
+                    text: "food".to_string(),
+                    status: Status::Pending,
+                },
+            ],
+        };
+
+        memos.purge_done();
+        assert_eq!(
+            memos.inner,
+            vec![Memo {
+                text: "food".to_string(),
+                status: Status::Pending,
+            },],
+            "wrong data"
+        )
     }
 }
