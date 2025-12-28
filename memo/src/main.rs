@@ -2,7 +2,7 @@ use std::env;
 
 use anyhow::Result;
 
-use memo::Memos;
+use memo::{Memo, Memos, Status};
 
 fn main() -> Result<()> {
     let mut memos = Memos::open("memos.txt")?;
@@ -13,8 +13,11 @@ fn main() -> Result<()> {
             println!("{memo}");
         }
     } else {
-        let memo = args.join(" ");
-        memos.inner.push(memo);
+        let text = args.join(" ");
+        memos.inner.push(Memo {
+            text,
+            status: Status::Pending,
+        });
         memos.sync()?;
     }
 

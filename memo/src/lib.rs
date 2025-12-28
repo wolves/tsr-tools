@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     fs::{self, File},
     io::{BufReader, BufWriter, Result},
     path::{Path, PathBuf},
@@ -39,10 +40,35 @@ pub struct Memo {
     pub status: Status,
 }
 
+impl Display for Memo {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        write!(f, "{} {}", self.status, self.text)
+    }
+}
+
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub enum Status {
     Pending,
     Done,
+}
+
+impl Display for Status {
+    fn fmt(
+        &self,
+        f: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Pending => "-",
+                Self::Done => "x",
+            }
+        )
+    }
 }
 
 #[cfg(test)]
