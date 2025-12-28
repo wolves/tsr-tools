@@ -1,5 +1,3 @@
-use std::env;
-
 use anyhow::Result;
 use clap::Parser;
 
@@ -11,6 +9,9 @@ struct Args {
     /// Marks all matching memos as done
     #[arg(short, long)]
     done: bool,
+    /// Deletes all memos with status "done"
+    #[arg(short, long)]
+    purge: bool,
     /// Text of the memo to store or mark as done
     text: Vec<String>,
 }
@@ -19,6 +20,11 @@ fn main() -> Result<()> {
     let args = Args::parse();
     let mut memos = Memos::open("memos.json")?;
     let text = args.text.join(" ");
+
+    if args.purge {
+        memos.purge_done();
+        memos.sync()?;
+    }
 
     if args.done {
         for m in memos.find_all(&text) {
