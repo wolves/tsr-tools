@@ -1,12 +1,21 @@
 use std::env;
 
-fn main() {
-    let api_key = env::var("WEATHERSTACK_API_KEY").unwrap();
-    let resp = reqwest::blocking::Client::new()
-        .get("https://api.weatherstack.com/current")
-        .query(&[("query", "London,UK"), ("access_key", &api_key)])
-        .send()
-        .unwrap();
+use anyhow::Result;
 
-    println!("{}", resp.text().unwrap());
+use weather::get_weather;
+
+fn main() -> Result<()> {
+    let args: Vec<_> = env::args().skip(1).collect();
+    let location = args.join(" ");
+
+    let api_key = env::var("WEATHERSTACK_API_KEY")?;
+    let weather = get_weather(&location, &api_key)?;
+    // let resp = reqwest::blocking::Client::new()
+    //     .get("https://api.weatherstack.com/current")
+    //     .query(&[("query", "London,UK"), ("access_key", &api_key)])
+    //     .send()
+    //     .unwrap();
+
+    println!("{weather}");
+    Ok(())
 }
