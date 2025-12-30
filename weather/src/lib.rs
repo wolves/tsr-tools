@@ -123,24 +123,9 @@ mod tests {
     use httpmock::{Method, MockServer};
 
     #[test]
-    fn mock_server_responds_with_hello() {
-        let server = MockServer::start();
-        server.mock(|when, then| {
-            when.method(Method::GET);
-            then.status(StatusCode::OK).body("hello");
-        });
-        let resp = reqwest::blocking::Client::new()
-            .get(server.base_url())
-            .send()
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK, "wrong status");
-        assert_eq!(resp.text().unwrap(), "hello", "wrong message");
-    }
-
-    #[test]
     fn get_weather_fn_makes_correct_api_call() {
         let server = MockServer::start();
-        server.mock(|when, then| {
+        let mock = server.mock(|when, then| {
             when.method(Method::GET)
                 .path("/current")
                 .query_param("query", "London,UK")
@@ -152,9 +137,10 @@ mod tests {
 
         let mut ws = Weatherstack::new("fake API key");
         ws.base_url = server.base_url() + "/current";
-        let weather = ws.get_weather("London,UK").unwrap();
+        let weather = ws.get_weather("London,UK");
+        mock.assert();
         assert_eq!(
-            weather,
+            weather.unwrap(),
             Weather {
                 temperature: 7.0,
                 summary: "Overcast".into(),
