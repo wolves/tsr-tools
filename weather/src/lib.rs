@@ -4,6 +4,28 @@ use anyhow::{Context, Result};
 use reqwest::blocking::RequestBuilder;
 use serde_json::Value;
 
+pub struct Weatherstack {
+    pub base_url: String,
+    api_key: String,
+}
+
+impl Weatherstack {
+    #[must_use]
+    pub fn new(api_key: &str) -> Self {
+        Self {
+            base_url: "https://api.weatherstack.com/current".into(),
+            api_key: api_key.to_owned(),
+        }
+    }
+
+    pub fn get_weather(&self, location: &str) -> Result<Weather> {
+        let resp = request(&self.base_url, location, &self.api_key)
+            .send()?;
+        let weather = deserialize(&resp.text()?)?;
+        Ok(weather)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct Weather {
     temperature: f64,
@@ -19,18 +41,13 @@ impl Display for Weather {
     }
 }
 
-pub fn get_weather(
+pub fn request(
+    base_url: &str,
     location: &str,
     api_key: &str,
-) -> Result<Weather> {
-    let resp = request(location, api_key).send()?;
-    let weather = deserialize(&resp.text()?)?;
-    Ok(weather)
-}
-
-pub fn request(location: &str, api_key: &str) -> RequestBuilder {
+) -> RequestBuilder {
     reqwest::blocking::Client::new()
-        .get("https://api.weatherstack.com/current")
+        .get(base_url)
         .query(&[("query", location), ("access_key", api_key)])
 }
 
@@ -62,13 +79,17 @@ mod tests {
 
     #[test]
     fn request_builds_correct_request() {
-        let req = request("London,UK", "fake API key");
+        let req = request(
+            "https://example.com/current",
+            "London,UK",
+            "fake API key",
+        );
         let req = req.build().unwrap();
         assert_eq!(req.method(), "GET", "wrong method");
         let url = req.url();
         assert_eq!(
             url.host(),
-            Some(Domain("api.weatherstack.com")),
+            Some(Domain("example.com")),
             "wrong host"
         );
         assert_eq!(url.path(), "/current", "wrong path");
@@ -96,5 +117,49 @@ mod tests {
             },
             "wrong data"
         )
+    }
+
+    use http::StatusCode;
+    use httpmock::{Method, MockServer};
+
+    #[test]
+    fn mock_server_responds_with_hello() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(Method::GET);
+            then.status(StatusCode::OK).body("hello");
+        });
+        let resp = reqwest::blocking::Client::new()
+            .get(server.base_url())
+            .send()
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK, "wrong status");
+        assert_eq!(resp.text().unwrap(), "hello", "wrong message");
+    }
+
+    #[test]
+    fn get_weather_fn_makes_correct_api_call() {
+        let server = MockServer::start();
+        server.mock(|when, then| {
+            when.method(Method::GET)
+                .path("/current")
+                .query_param("query", "London,UK")
+                .query_param("access_key", "fake API key");
+            then.status(StatusCode::OK)
+                .header("content-type", "application/json")
+                .body_from_file("tests/data/ws.json");
+        });
+
+        let mut ws = Weatherstack::new("fake API key");
+        ws.base_url = server.base_url() + "/current";
+        let weather = ws.get_weather("London,UK").unwrap();
+        assert_eq!(
+            weather,
+            Weather {
+                temperature: 7.0,
+                summary: "Overcast".into(),
+            },
+            "wrong weather"
+        );
     }
 }

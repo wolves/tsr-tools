@@ -1,8 +1,7 @@
 use anyhow::Result;
 use clap::{CommandFactory, Parser};
 use std::env::{self};
-
-use weather::get_weather;
+use weather::Weatherstack;
 
 #[derive(Parser)]
 /// Shows the current weather for a given location.
@@ -28,7 +27,8 @@ fn main() -> Result<()> {
     }
     let args = Args::parse();
     let location = args.location.join(" ");
-    let weather = get_weather(&location, &args.api_key)?;
+    let ws = Weatherstack::new(&args.api_key);
+    let weather = ws.get_weather(&location)?;
     println!("{weather}");
     Ok(())
 }
