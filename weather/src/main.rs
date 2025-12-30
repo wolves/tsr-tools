@@ -1,21 +1,34 @@
-use std::env;
-
 use anyhow::Result;
+use clap::{CommandFactory, Parser};
+use std::env::{self};
 
 use weather::get_weather;
 
+#[derive(Parser)]
+/// Shows the current weather for a given location.
+struct Args {
+    #[arg(required = true)]
+    /// Example: "London,UK"
+    location: Vec<String>,
+
+    #[arg(
+        short,
+        long,
+        env = "WEATHERSTACK_API_KEY",
+        required = true
+    )]
+    /// Weatherstack API key
+    api_key: String,
+}
+
 fn main() -> Result<()> {
-    let args: Vec<_> = env::args().skip(1).collect();
-    let location = args.join(" ");
-
-    let api_key = env::var("WEATHERSTACK_API_KEY")?;
-    let weather = get_weather(&location, &api_key)?;
-    // let resp = reqwest::blocking::Client::new()
-    //     .get("https://api.weatherstack.com/current")
-    //     .query(&[("query", "London,UK"), ("access_key", &api_key)])
-    //     .send()
-    //     .unwrap();
-
+    if env::args().count() < 2 {
+        Args::command().print_long_help()?;
+        return Ok(());
+    }
+    let args = Args::parse();
+    let location = args.location.join(" ");
+    let weather = get_weather(&location, &args.api_key)?;
     println!("{weather}");
     Ok(())
 }
