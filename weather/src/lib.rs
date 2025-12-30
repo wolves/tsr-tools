@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use anyhow::{Context, Result};
 use reqwest::blocking::RequestBuilder;
 use serde_json::Value;
@@ -27,18 +25,29 @@ impl Weatherstack {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Weather {
-    temperature: f64,
-    summary: String,
+pub struct Temperature(f64);
+
+impl Temperature {
+    #[must_use]
+    pub fn from_celsius(val: f64) -> Self {
+        Self(val)
+    }
+
+    #[must_use]
+    pub fn as_celsius(&self) -> f64 {
+        self.0
+    }
+
+    #[must_use]
+    pub fn as_farenheit(&self) -> f64 {
+        self.0 * 1.8 + 32.0
+    }
 }
 
-impl Display for Weather {
-    fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
-    ) -> std::fmt::Result {
-        write!(f, "{} {:.1}°C", self.summary, self.temperature)
-    }
+#[derive(Debug, PartialEq)]
+pub struct Weather {
+    pub temperature: Temperature,
+    pub summary: String,
 }
 
 pub fn request(
@@ -65,7 +74,7 @@ pub fn deserialize(json: &str) -> Result<Weather> {
         .to_string();
 
     Ok(Weather {
-        temperature,
+        temperature: Temperature::from_celsius(temperature),
         summary,
     })
 }
@@ -112,7 +121,7 @@ mod tests {
         assert_eq!(
             result,
             Weather {
-                temperature: 7.0,
+                temperature: Temperature::from_celsius(7.0),
                 summary: "Overcast".into(),
             },
             "wrong data"
@@ -142,10 +151,17 @@ mod tests {
         assert_eq!(
             weather.unwrap(),
             Weather {
-                temperature: 7.0,
+                temperature: Temperature::from_celsius(7.0),
                 summary: "Overcast".into(),
             },
             "wrong weather"
         );
+    }
+
+    #[test]
+    fn temperature_can_be_expressed_as_celsius_or_farenheit() {
+        let temp = Temperature::from_celsius(10.0);
+        assert_eq!(temp.as_celsius(), 10.0, "wrong celsius");
+        assert_eq!(temp.as_farenheit(), 50.0, "wrong farenheit");
     }
 }

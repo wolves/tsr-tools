@@ -6,10 +6,6 @@ use weather::Weatherstack;
 #[derive(Parser)]
 /// Shows the current weather for a given location.
 struct Args {
-    #[arg(required = true)]
-    /// Example: "London,UK"
-    location: Vec<String>,
-
     #[arg(
         short,
         long,
@@ -18,6 +14,12 @@ struct Args {
     )]
     /// Weatherstack API key
     api_key: String,
+    #[arg(short, long)]
+    /// Report temperatures in Farenheit
+    farenheit: bool,
+    #[arg(required = true)]
+    /// Example: "London,UK"
+    location: Vec<String>,
 }
 
 fn main() -> Result<()> {
@@ -29,6 +31,14 @@ fn main() -> Result<()> {
     let location = args.location.join(" ");
     let ws = Weatherstack::new(&args.api_key);
     let weather = ws.get_weather(&location)?;
-    println!("{weather}");
+    println!(
+        "{} {}",
+        weather.summary,
+        if args.farenheit {
+            format!("{:.1}°F", weather.temperature.as_farenheit())
+        } else {
+            format!("{:.1}°C", weather.temperature.as_celsius())
+        }
+    );
     Ok(())
 }
