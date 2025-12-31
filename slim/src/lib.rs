@@ -1,0 +1,106 @@
+use std::{
+    path::{Path, PathBuf},
+    process::{Command, Output},
+};
+
+use anyhow::Result;
+use walkdir::WalkDir;
+
+pub fn slim(path: impl AsRef<Path>) -> Result<String> {
+    let mut output = String::new();
+    for target in manifests(path)? {
+        let mut cmd = cargo_clean_cmd(&target);
+        let cmd_output = cmd.output()?;
+        output.push_str(&summary(target, &cmd_output));
+    }
+    Ok(output)
+}
+
+fn manifests(path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
+    let mut targets = Vec::new();
+
+    for entry in WalkDir::new(path) {
+        let entry = entry?;
+        if entry.file_name() == "Cargo.toml" {
+            targets.push(entry.path().to_path_buf());
+        }
+    }
+
+    Ok(targets)
+}
+
+fn cargo_clean_cmd(path: impl AsRef<Path>) -> Command {
+    let mut cmd = Command::new("cargo");
+    cmd.args([
+        "clean",
+        "--manifest-path",
+        &path.as_ref().to_string_lossy(),
+    ]);
+    cmd
+}
+
+fn summary(target: impl AsRef<Path>, output: &Output) -> String {
+    format!(
+        "{}: {}",
+        target.as_ref().parent().unwrap().display(),
+        String::from_utf8_lossy(&output.stderr).trim_start(),
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::process::{Command, ExitStatus};
+
+    use super::*;
+
+    #[test]
+    fn manifests_fn_returns_cargo_toml_paths() {
+        let mut actual = manifests("tests/data").unwrap();
+        actual.sort();
+        let expected: Vec<PathBuf> = vec![
+            PathBuf::from("tests/data/proj_1/Cargo.toml"),
+            PathBuf::from("tests/data/proj_2/Cargo.toml"),
+            PathBuf::from("tests/data/proj_3/Cargo.toml"),
+        ];
+
+        assert_eq!(actual, expected, "wrong path manifests");
+    }
+
+    #[test]
+    fn cargo_clean_cmd_fn_returns_correct_cargo_command() {
+        let cmd = cargo_clean_cmd("tests/data/proj_1/Cargo.toml");
+        assert_eq!(
+            cmd.get_program(),
+            "cargo",
+            "wrong cargo clean cmd program"
+        );
+        assert_eq!(
+            cmd.get_args().collect::<Vec<_>>(),
+            [
+                "clean",
+                "--manifest-path",
+                "tests/data/proj_1/Cargo.toml"
+            ],
+            "wrong cargo clean cmd args"
+        );
+    }
+
+    #[test]
+    fn summary_fn_reports_target_path_and_cmd_output() {
+        let actual = summary(
+            PathBuf::from("./target/Cargo.toml"),
+            &Output {
+                status: ExitStatus::default(),
+                stdout: Vec::new(),
+                stderr: String::from(
+                    "     Removed 2 files, 1.6MiB total\n",
+                )
+                .into_bytes(),
+            },
+        );
+        assert_eq!(
+            actual, "./target: Removed 2 files, 1.6MiB total\n",
+            "wrong formatting"
+        );
+    }
+}
