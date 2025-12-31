@@ -13,7 +13,7 @@ struct Args {
 
     #[arg(default_value = ".")]
     /// Path to search for Rust projects
-    path: String,
+    paths: Vec<String>,
 }
 
 fn main() -> Result<()> {
@@ -22,7 +22,9 @@ fn main() -> Result<()> {
     if args.dry_run {
         slimmer.dry_run = true;
     }
-    let output = slimmer.slim(args.path)?;
-    print!("{output}");
+    for path in &args.paths {
+        let output = slimmer.slim(path)?;
+        print!("{output}");
+    }
     Ok(())
 }
