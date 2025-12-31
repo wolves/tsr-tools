@@ -5,8 +5,10 @@ use clap::{CommandFactory, Parser};
 
 #[derive(Parser)]
 struct Args {
-    #[arg(short, long, required = true)]
-    cmd: String,
+    #[arg(required = true)]
+    program: String,
+
+    args: Vec<String>,
 }
 
 fn main() -> Result<()> {
@@ -16,11 +18,10 @@ fn main() -> Result<()> {
     }
     let args = Args::parse();
 
-    let start = Instant::now();
-    let mut cmd = Command::new(args.cmd);
-    let out = cmd.output()?;
-    let stdout = String::from_utf8_lossy(&out.stdout);
-    println!("output: {stdout}");
-    println!("That took {:?}", start.elapsed());
+    let report = timer::time(&args.program, &args.args)?;
+
+    println!("{}", report.stdout);
+    println!("{}", report.stderr);
+    println!("{:.1?}", report.elapsed);
     Ok(())
 }
