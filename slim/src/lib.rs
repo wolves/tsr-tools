@@ -6,14 +6,39 @@ use std::{
 use anyhow::Result;
 use walkdir::WalkDir;
 
-pub fn slim(path: impl AsRef<Path>) -> Result<String> {
-    let mut output = String::new();
-    for target in manifests(path)? {
-        let mut cmd = cargo_clean_cmd(&target);
-        let cmd_output = cmd.output()?;
-        output.push_str(&summary(target, &cmd_output));
+#[derive(Default)]
+pub struct Slimmer {
+    pub dry_run: bool,
+}
+
+impl Slimmer {
+    pub fn new() -> Self {
+        Slimmer::default()
     }
-    Ok(output)
+
+    pub fn slim(&self, path: impl AsRef<Path>) -> Result<String> {
+        let mut output = String::new();
+        for target in manifests(path)? {
+            let mut cmd = self.cargo_clean_cmd(&target);
+            let cmd_output = cmd.output()?;
+            output.push_str(&summary(target, &cmd_output));
+        }
+        Ok(output)
+    }
+    fn cargo_clean_cmd(&self, path: impl AsRef<Path>) -> Command {
+        let mut cmd = Command::new("cargo");
+        cmd.args([
+            "clean",
+            "--manifest-path",
+            &path.as_ref().to_string_lossy(),
+        ]);
+
+        if self.dry_run {
+            cmd.arg("--dry-run");
+        }
+
+        cmd
+    }
 }
 
 fn manifests(path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
@@ -27,16 +52,6 @@ fn manifests(path: impl AsRef<Path>) -> Result<Vec<PathBuf>> {
     }
 
     Ok(targets)
-}
-
-fn cargo_clean_cmd(path: impl AsRef<Path>) -> Command {
-    let mut cmd = Command::new("cargo");
-    cmd.args([
-        "clean",
-        "--manifest-path",
-        &path.as_ref().to_string_lossy(),
-    ]);
-    cmd
 }
 
 fn summary(target: impl AsRef<Path>, output: &Output) -> String {
@@ -68,7 +83,9 @@ mod tests {
 
     #[test]
     fn cargo_clean_cmd_fn_returns_correct_cargo_command() {
-        let cmd = cargo_clean_cmd("tests/data/proj_1/Cargo.toml");
+        let mut slimmer = Slimmer::new();
+        let cmd =
+            slimmer.cargo_clean_cmd("tests/data/proj_1/Cargo.toml");
         assert_eq!(
             cmd.get_program(),
             "cargo",
@@ -80,6 +97,29 @@ mod tests {
                 "clean",
                 "--manifest-path",
                 "tests/data/proj_1/Cargo.toml"
+            ],
+            "wrong cargo clean cmd args"
+        );
+    }
+
+    #[test]
+    fn cargo_clean_cmd_fn_honours_dry_run_mode() {
+        let mut slimmer = Slimmer::new();
+        slimmer.dry_run = true;
+        let cmd =
+            slimmer.cargo_clean_cmd("tests/data/proj_1/Cargo.toml");
+        assert_eq!(
+            cmd.get_program(),
+            "cargo",
+            "wrong cargo clean cmd program"
+        );
+        assert_eq!(
+            cmd.get_args().collect::<Vec<_>>(),
+            [
+                "clean",
+                "--manifest-path",
+                "tests/data/proj_1/Cargo.toml",
+                "--dry-run",
             ],
             "wrong cargo clean cmd args"
         );
