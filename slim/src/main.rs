@@ -3,9 +3,15 @@ use clap::Parser;
 
 use slim::Slimmer;
 
+#[derive(Debug, Parser)]
+#[command(bin_name = "cargo")]
+enum CargoCommand {
+    Slim(Args),
+}
+
 /// Runs `cargo clean` recursively to save disk space by deleting build
 /// artifacts.
-#[derive(Parser)]
+#[derive(clap::Args, Debug)]
 struct Args {
     #[arg(long)]
     /// Don't clean anything just show what you would clean
@@ -17,7 +23,7 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let CargoCommand::Slim(args) = CargoCommand::parse();
     let mut slimmer = Slimmer::new();
     if args.dry_run {
         slimmer.dry_run = true;
